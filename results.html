@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ergebnisse – Pfelders 2027</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green:    #2d5a3d;
+      --green-lt: #3d7a54;
+      --cream:    #f8f4ec;
+      --gold:     #c9a84c;
+      --dark:     #1a2e22;
+      --muted:    #6b7c6e;
+      --border:   #c8d8c8;
+      --white:    #ffffff;
+      --red:      #b83232;
+      --radius:   16px;
+      --shadow:   0 4px 24px rgba(0,0,0,.10);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Lato', sans-serif; background: var(--cream); color: var(--dark); min-height: 100vh; }
+
+    header { background: var(--dark); color: var(--white); padding: 28px 24px 24px; text-align: center; }
+    .header-badge {
+      display: inline-block; background: var(--gold); color: var(--dark);
+      font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 999px; margin-bottom: 12px;
+    }
+    header h1 { font-family: 'Playfair Display', serif; font-size: clamp(22px,5vw,30px); margin-bottom: 6px; }
+    header p  { font-size: 15px; opacity: .75; }
+
+    main { max-width: 960px; margin: 0 auto; padding: 28px 16px 60px; }
+
+    /* ── Stats ── */
+    .stats { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-bottom: 24px; }
+    @media (min-width: 560px) { .stats { grid-template-columns: repeat(4,1fr); } }
+    .stat-card {
+      background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius);
+      padding: 20px 16px; text-align: center; box-shadow: var(--shadow);
+    }
+    .stat-val   { font-family: 'Playfair Display', serif; font-size: 36px; color: var(--green); line-height: 1; margin-bottom: 6px; }
+    .stat-label { font-size: 13px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 13px 20px;
+      border-radius: 12px; font-family: 'Lato', sans-serif; font-size: 16px; font-weight: 700;
+      cursor: pointer; border: 2px solid transparent; transition: background .15s, color .15s;
+      -webkit-tap-highlight-color: transparent; text-decoration: none;
+    }
+    .btn-primary { background: var(--green); color: var(--white); }
+    .btn-primary:hover { background: var(--green-lt); }
+    .btn-danger  { background: var(--white); color: var(--red); border-color: var(--red); }
+    .btn-danger:hover  { background: var(--red); color: var(--white); }
+    .btn-back    { background: var(--white); color: var(--dark); border-color: var(--border); }
+    .btn-back:hover    { background: var(--cream); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Table ── */
+    .table-wrap { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); border: 1.5px solid var(--border); overflow: hidden; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    thead { background: var(--green); color: var(--white); }
+    th { padding: 15px 16px; text-align: left; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+    td { padding: 15px 16px; font-size: 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: var(--cream); }
+
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+    .badge-yes   { background: #d4edda; color: #155724; }
+    .badge-maybe { background: #fff3cd; color: #856404; }
+    .badge-no    { background: #f8d7da; color: #721c24; }
+    .badge-fri   { background: #cce5ff; color: #004085; }
+    .badge-sat   { background: #e2d9f3; color: #4a235a; }
+    .badge-egal  { background: #d6d8db; color: #383d41; }
+
+    .del-btn {
+      background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer;
+      padding: 4px 8px; border-radius: 6px; transition: color .15s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .del-btn:hover { color: var(--red); background: #ffeaea; }
+
+    /* ── Loading ── */
+    .loading {
+      text-align: center; padding: 48px 24px; color: var(--muted); font-size: 17px;
+    }
+    .spinner {
+      display: inline-block; width: 32px; height: 32px; margin-bottom: 16px;
+      border: 4px solid var(--border); border-top-color: var(--green);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty ── */
+    .empty { text-align: center; padding: 60px 24px; }
+    .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty h3 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 8px; }
+    .empty p  { color: var(--muted); font-size: 16px; }
+
+    /* ── Error ── */
+    .load-error {
+      background: #ffeaea; border: 2px solid var(--red); border-radius: 12px;
+      padding: 16px 18px; margin-bottom: 16px; font-size: 15px; color: var(--red); font-weight: 700; display: none;
+    }
+    .load-error.show { display: block; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 100; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--white); border-radius: var(--radius); padding: 32px 28px; max-width: 400px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+    .modal h3 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 10px; }
+    .modal p  { color: var(--muted); font-size: 16px; margin-bottom: 24px; }
+    .modal-btns { display: flex; gap: 12px; }
+    .modal-btns .btn { flex: 1; justify-content: center; }
+
+    footer { text-align: center; padding: 16px; font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">📊 Ergebnisse</div>
+  <h1>Pfelders 2027 – Auswertung</h1>
+  <p>Alle eingegangenen Antworten auf einen Blick</p>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card"><div class="stat-val" id="statAntworten">–</div><div class="stat-label">Antworten</div></div>
+    <div class="stat-card"><div class="stat-val" id="statJa">–</div><div class="stat-label">Dabei! ✅</div></div>
+    <div class="stat-card"><div class="stat-val" id="statErwachsene">–</div><div class="stat-label">Erwachsene</div></div>
+    <div class="stat-card"><div class="stat-val" id="statKinder">–</div><div class="stat-label">Kinder</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-primary" id="btnExport" onclick="exportCSV()">⬇️ Als CSV exportieren</button>
+    <button class="btn btn-danger"  onclick="showClearModal()">🗑️ Alle löschen</button>
+    <a href="index.html" class="btn btn-back">← Zurück zur Umfrage</a>
+  </div>
+
+  <div class="load-error" id="loadError">⚠️ Fehler beim Laden der Daten. Seite neu laden?</div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="tableWrap">
+    <div class="loading" id="loadingState">
+      <div class="spinner"></div><br/>Daten werden geladen…
+    </div>
+    <div class="table-scroll" id="tableScroll" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Zeitstempel</th>
+            <th>Familie / Gruppe</th>
+            <th>Interesse</th>
+            <th>Erwachsene</th>
+            <th>Kinder</th>
+            <th>Abfahrt</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyState" style="display:none">
+      <div class="empty-icon">📭</div>
+      <h3>Noch keine Antworten</h3>
+      <p>Sobald jemand die Umfrage ausfüllt,<br/>erscheinen die Antworten hier.</p>
+    </div>
+  </div>
+</main>
+
+<footer>Daten gespeichert in Turso (Frankfurt) · DSGVO-konform</footer>
+
+<!-- Clear all modal -->
+<div class="modal-overlay" id="clearModal">
+  <div class="modal">
+    <h3>Alle Daten löschen?</h3>
+    <p>Alle Antworten werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.</p>
+    <div class="modal-btns">
+      <button class="btn btn-back"   onclick="hideClearModal()">Abbrechen</button>
+      <button class="btn btn-danger" onclick="clearAll()">Ja, löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete one modal -->
+<div class="modal-overlay" id="deleteOneModal">
+  <div class="modal">
+    <h3>Eintrag löschen?</h3>
+    <p id="deleteOneName">Diesen Eintrag wirklich löschen?</p>
+    <div class="modal-btns">
+      <button class="btn btn-back"   onclick="hideDeleteModal()">Abbrechen</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Turso ── */
+  const DB_URL   = 'https://pfelders-2027-umfrage-mimi800-debug21.aws-ap-northeast-1.turso.io';
+  const DB_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzUxNTU1NDcsImlkIjoiMDE5ZDRmODMtY2MwMS03NDAwLWE0NmUtMzRhMWFiZTU2OTBmIiwicmlkIjoiMGIxN2M0YjUtZWFkMi00ZGJiLTlmZTgtZGFkOWMwMmI1M2RhIn0.eJQE_fg7BSKRt6Mf0svrOhzJeSUHhle6-Kgf651fsGuQ5VX7j8FjdlWXe7SYUNf32-lX3kIFkYhH6GL3D1rRCg';
+
+  async function turso(requests) {
+    const res = await fetch(`${DB_URL}/v2/pipeline`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${DB_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  /* Parse Turso row into object */
+  function parseRows(result) {
+    const cols = result.response.result.cols.map(c => c.name);
+    return result.response.result.rows.map(row =>
+      Object.fromEntries(cols.map((c, i) => [c, row[i].value]))
+    );
+  }
+
+  let cachedData = [];
+  let deleteTargetId = null;
+
+  /* ── Load data ── */
+  async function loadData() {
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('tableScroll').style.display  = 'none';
+    document.getElementById('emptyState').style.display   = 'none';
+    document.getElementById('loadError').classList.remove('show');
+
+    try {
+      // Ensure table exists first
+      await turso([{
+        type: 'execute',
+        stmt: { sql: `CREATE TABLE IF NOT EXISTS responses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          zeitstempel TEXT NOT NULL, familie TEXT NOT NULL,
+          interesse TEXT NOT NULL, erwachsene INTEGER NOT NULL DEFAULT 0,
+          kinder INTEGER NOT NULL DEFAULT 0, abfahrt TEXT NOT NULL
+        )` }
+      }, { type: 'close' }]);
+
+      const result = await turso([{
+        type: 'execute',
+        stmt: { sql: 'SELECT * FROM responses ORDER BY id DESC' }
+      }, { type: 'close' }]);
+
+      cachedData = parseRows(result.results[0]);
+      render();
+    } catch (e) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('loadError').classList.add('show');
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function interestBadge(v) {
+    if (v.startsWith('Ja'))   return `<span class="badge badge-yes">${esc(v)}</span>`;
+    if (v.startsWith('Eher')) return `<span class="badge badge-maybe">${esc(v)}</span>`;
+    return `<span class="badge badge-no">${esc(v)}</span>`;
+  }
+  function departureBadge(v) {
+    if (v.startsWith('Freitag'))  return `<span class="badge badge-fri">${esc(v)}</span>`;
+    if (v.startsWith('Samstags')) return `<span class="badge badge-sat">${esc(v)}</span>`;
+    return `<span class="badge badge-egal">${esc(v)}</span>`;
+  }
+
+  function render() {
+    const data = cachedData;
+    document.getElementById('loadingState').style.display = 'none';
+
+    // stats
+    document.getElementById('statAntworten').textContent  = data.length;
+    document.getElementById('statJa').textContent         = data.filter(d => String(d.interesse).startsWith('Ja')).length;
+    document.getElementById('statErwachsene').textContent = data.reduce((s,d) => s + Number(d.erwachsene), 0);
+    document.getElementById('statKinder').textContent     = data.reduce((s,d) => s + Number(d.kinder), 0);
+
+    if (data.length === 0) {
+      document.getElementById('emptyState').style.display  = 'block';
+      document.getElementById('tableScroll').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('emptyState').style.display  = 'none';
+    document.getElementById('tableScroll').style.display = 'block';
+
+    document.getElementById('resultsBody').innerHTML = data.map((d, i) => `
+      <tr>
+        <td><strong>${data.length - i}</strong></td>
+        <td style="white-space:nowrap;color:var(--muted);font-size:13px">${esc(d.zeitstempel)}</td>
+        <td><strong>${esc(d.familie)}</strong></td>
+        <td>${interestBadge(d.interesse)}</td>
+        <td><strong>${d.erwachsene}</strong></td>
+        <td><strong>${d.kinder}</strong></td>
+        <td>${departureBadge(d.abfahrt)}</td>
+        <td>
+          <button class="del-btn" onclick="askDelete(${d.id},'${esc(d.familie)}')"
+                  title="Eintrag löschen" aria-label="Eintrag löschen">✕</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  /* ── CSV Export ── */
+  function exportCSV() {
+    if (cachedData.length === 0) { alert('Keine Daten zum Exportieren.'); return; }
+    const header = ['Nr.','Zeitstempel','Familie / Gruppe','Interesse','Erwachsene','Kinder','Abfahrt'];
+    const rows = cachedData.map((d, i) => [
+      cachedData.length - i,
+      `"${String(d.zeitstempel).replace(/"/g,'""')}"`,
+      `"${String(d.familie).replace(/"/g,'""')}"`,
+      `"${String(d.interesse).replace(/"/g,'""')}"`,
+      d.erwachsene, d.kinder,
+      `"${String(d.abfahrt).replace(/"/g,'""')}"`
+    ]);
+    const csv = '\uFEFF' + [header.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pfelders2027_umfrage.csv';
+    a.click();
+  }
+
+  /* ── Clear all ── */
+  function showClearModal() { document.getElementById('clearModal').classList.add('show'); }
+  function hideClearModal() { document.getElementById('clearModal').classList.remove('show'); }
+  async function clearAll() {
+    hideClearModal();
+    try {
+      await turso([{ type: 'execute', stmt: { sql: 'DELETE FROM responses' } }, { type: 'close' }]);
+      cachedData = [];
+      render();
+    } catch { alert('Fehler beim Löschen.'); }
+  }
+
+  /* ── Delete one ── */
+  function askDelete(id, name) {
+    deleteTargetId = id;
+    document.getElementById('deleteOneName').textContent = `Eintrag von „${name}" wirklich löschen?`;
+    document.getElementById('deleteOneModal').classList.add('show');
+  }
+  function hideDeleteModal() { document.getElementById('deleteOneModal').classList.remove('show'); deleteTargetId = null; }
+  async function confirmDelete() {
+    if (deleteTargetId === null) return;
+    const id = deleteTargetId;
+    hideDeleteModal();
+    try {
+      await turso([{
+        type: 'execute',
+        stmt: { sql: 'DELETE FROM responses WHERE id = ?', args: [{ type: 'integer', value: id }] }
+      }, { type: 'close' }]);
+      cachedData = cachedData.filter(d => Number(d.id) !== Number(id));
+      render();
+    } catch { alert('Fehler beim Löschen.'); }
+  }
+
+  /* Close modals on overlay click */
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) { hideClearModal(); hideDeleteModal(); } });
+  });
+
+  /* Init */
+  loadData();
+</script>
+</body>
+</html>
