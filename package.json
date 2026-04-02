@@ -1,0 +1,16 @@
+{
+  "name": "pfelders-2027-umfrage",
+  "version": "1.0.0",
+  "description": "Pfelders 2027 Umfrage mit Vercel und Turso",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

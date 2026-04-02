@@ -206,30 +206,25 @@
 </div>
 
 <script>
-  /* ── Turso ── */
-  const DB_URL   = 'https://pfelders-2027-umfrage-mimi800-debug21.aws-ap-northeast-1.turso.io';
-  const DB_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NzUxNTU1NDcsImlkIjoiMDE5ZDRmODMtY2MwMS03NDAwLWE0NmUtMzRhMWFiZTU2OTBmIiwicmlkIjoiMGIxN2M0YjUtZWFkMi00ZGJiLTlmZTgtZGFkOWMwMmI1M2RhIn0.eJQE_fg7BSKRt6Mf0svrOhzJeSUHhle6-Kgf651fsGuQ5VX7j8FjdlWXe7SYUNf32-lX3kIFkYhH6GL3D1rRCg';
-
-  async function turso(requests) {
-    const res = await fetch(`${DB_URL}/v2/pipeline`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${DB_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests })
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  }
-
-  /* Parse Turso row into object */
-  function parseRows(result) {
-    const cols = result.response.result.cols.map(c => c.name);
-    return result.response.result.rows.map(row =>
-      Object.fromEntries(cols.map((c, i) => [c, row[i].value]))
-    );
-  }
-
+  const API_BASE = '/api';
   let cachedData = [];
   let deleteTargetId = null;
+
+  async function apiRequest(method, body = null) {
+    const options = {
+      method,
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (body) options.body = JSON.stringify(body);
+
+    const res = await fetch(API_BASE, options);
+    const data = await res.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Request failed');
+    }
+    return data;
+  }
 
   /* ── Load data ── */
   async function loadData() {
@@ -239,25 +234,11 @@
     document.getElementById('loadError').classList.remove('show');
 
     try {
-      // Ensure table exists first
-      await turso([{
-        type: 'execute',
-        stmt: { sql: `CREATE TABLE IF NOT EXISTS responses (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          zeitstempel TEXT NOT NULL, familie TEXT NOT NULL,
-          interesse TEXT NOT NULL, erwachsene INTEGER NOT NULL DEFAULT 0,
-          kinder INTEGER NOT NULL DEFAULT 0, abfahrt TEXT NOT NULL
-        )` }
-      }, { type: 'close' }]);
-
-      const result = await turso([{
-        type: 'execute',
-        stmt: { sql: 'SELECT * FROM responses ORDER BY id DESC' }
-      }, { type: 'close' }]);
-
-      cachedData = parseRows(result.results[0]);
+      const result = await apiRequest('GET');
+      cachedData = result.data;
       render();
     } catch (e) {
+      console.error('Load error:', e);
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('loadError').classList.add('show');
     }
@@ -340,7 +321,7 @@
   async function clearAll() {
     hideClearModal();
     try {
-      await turso([{ type: 'execute', stmt: { sql: 'DELETE FROM responses' } }, { type: 'close' }]);
+      await apiRequest('DELETE', { all: true });
       cachedData = [];
       render();
     } catch { alert('Fehler beim Löschen.'); }
@@ -358,10 +339,7 @@
     const id = deleteTargetId;
     hideDeleteModal();
     try {
-      await turso([{
-        type: 'execute',
-        stmt: { sql: 'DELETE FROM responses WHERE id = ?', args: [{ type: 'integer', value: id }] }
-      }, { type: 'close' }]);
+      await apiRequest('DELETE', { id });
       cachedData = cachedData.filter(d => Number(d.id) !== Number(id));
       render();
     } catch { alert('Fehler beim Löschen.'); }
